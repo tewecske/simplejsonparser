@@ -3,7 +3,7 @@ package tewecske.simplejsonparser
 import cats._
 import cats.implicits._
 import cats.derived
-import tewecske.simplejsonparser.SimpleJsonParserMain.JsonValue.{JsonBoolean, JsonNull, JsonNumber, JsonString}
+import tewecske.simplejsonparser.SimpleJsonParserMain.JsonValue.{JsonArray, JsonBoolean, JsonNull, JsonNumber, JsonObject, JsonString}
 
 object SimpleJsonParserMain {
 
@@ -59,15 +59,50 @@ object SimpleJsonParserMain {
   def nonEmptyString(p: Parser[String]): Parser[String] = input =>
     p(input).filter(!_._2.isEmpty)
 
+
+
+
   val stringLiteral: Parser[String] = charP('"') *> spanP('\"' != _) <* charP('"')
+
+  val ws = spanP(Character.isWhitespace)
+
+  val elements = sepBy(ws *> charP(',') <* ws, jsonValue(_))
+
+  def many[A](p: Parser[A]): Parser[List[A]] = {
+    (input: String) => {
+      var result = List.empty[A]
+      def loop(input: String): String = {
+        runParser(p)(input) match {
+          case Some((rest, x)) =>
+            result = x :: result
+            loop(rest)
+          case None =>
+            input
+        }
+      }
+      val rest = loop(input)
+      Some((rest, result.reverse))
+    }
+  }
+  def cons[A](a: A)(b: List[A]): List[A] = a :: b
+  def sepBy[A, B](sep: Parser[A], element: Parser[B]): Parser[List[B]] =
+    element.map(cons).ap(many(sep *> element)) <+> alternativeParser.pure(List())
+
+  def keyColon[A, B](a: A)(b: B): A = a
+  def keyValue[A, B](a: A)(b: B): (A, B) = (a, b)
+
+  val pair = stringLiteral.map(keyColon).ap(ws *> charP(':') <* ws).map(keyValue[String, JsonValue]).ap(jsonValue(_))
+  val pairs = sepBy(ws *> charP(',') <* ws, pair)
 
   val jsonNull: Parser[JsonValue] = stringP("null").map(_ => JsonNull)
   val jsonBoolean: Parser[JsonValue] = (stringP("true") <+> stringP("false")).map(b => JsonBoolean(b.toBoolean))
   val jsonNumber: Parser[JsonValue] = nonEmptyString(spanP(c => Character.isDigit(c))).map(s => JsonNumber(s.toInt))
   val jsonString: Parser[JsonValue] = stringLiteral.map(s => JsonString(s))
+  val jsonArray: Parser[JsonValue] = (charP('[') *> ws *> elements <* ws <* charP(']')).map(l => JsonArray(l))
+  val jsonObject: Parser[JsonValue] = (charP('{') *> ws *> pairs <* ws <* charP('}')).map(o => JsonObject(o))
 
-  def jsonValue =
-    jsonNull <+> jsonBoolean <+> jsonNumber <+> jsonString
+  def jsonValue: Parser[JsonValue] =
+    jsonNull <+> jsonBoolean <+> jsonNumber <+> jsonString <+> jsonArray <+> jsonObject
 
 
 
