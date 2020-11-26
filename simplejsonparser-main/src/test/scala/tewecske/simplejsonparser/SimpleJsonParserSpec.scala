@@ -67,13 +67,14 @@ object SimpleJsonParserSpec extends DefaultRunnableSpec {
         assert(runParser(jsonValue)(
           """{
             |"key1":123,
-            |"array1": ["a", 123, [null, true]],
-            |"obj1": {"key2": false, "array2": []}
+            |"array1": ["a", 123, [null, true, []], [false]],
+            |"obj1": {"key2": false, "array2": [], "obj2": {"key3": []}}
             |}""".stripMargin))(equalTo(Some(("",
           JsonObject(List[(String, JsonValue)](
             ("key1", JsonNumber(123)),
-              ("array1",JsonArray(List(JsonString("a"), JsonNumber(123), JsonArray(List(JsonNull, JsonBoolean(true)))))),
-            ("obj1",JsonObject(List(("key2",JsonBoolean(false)), ("array2",JsonArray(List())))))
+              ("array1",JsonArray(List(JsonString("a"), JsonNumber(123),
+                JsonArray(List(JsonNull, JsonBoolean(true), JsonArray(List()))), JsonArray(List(JsonBoolean(false)))))),
+            ("obj1",JsonObject(List(("key2",JsonBoolean(false)), ("array2",JsonArray(List())), ("obj2", JsonObject(List(("key3", JsonArray(List()))))))))
             ))))))
     ),
     //"array1": ["a", 123, [null, true]],

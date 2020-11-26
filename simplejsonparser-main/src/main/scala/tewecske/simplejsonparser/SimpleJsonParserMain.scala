@@ -70,17 +70,15 @@ object SimpleJsonParserMain {
 
   def many[A](p: Parser[A]): Parser[List[A]] = {
     (input: String) => {
-      var result = List.empty[A]
-      def loop(input: String): String = {
+      def loop(input: String, result: List[A]): (String, List[A]) = {
         runParser(p)(input) match {
           case Some((rest, x)) =>
-            result = x :: result
-            loop(rest)
+            loop(rest, x :: result)
           case None =>
-            input
+            (input, result)
         }
       }
-      val rest = loop(input)
+      val (rest, result) = loop(input, List.empty[A])
       Some((rest, result.reverse))
     }
   }
