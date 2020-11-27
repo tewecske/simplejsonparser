@@ -2,31 +2,28 @@ name := "simplejsonparser"
 
 version := "0.1"
 
-scalaVersion := "2.13.4"
-
-
 inThisBuild(Seq(
   version := "0.1",
   isSnapshot := true,
-  scalaVersion := "2.12.10",
+  scalaVersion := "2.13.4",
   autoStartServer := false
 ))
 
-lazy val bspScalacOptions = Seq(
+lazy val simplejsonparserScalacOptions = Seq(
   "-feature",
   "-deprecation",
   "-encoding", "UTF-8",
   "-unchecked",
   "-deprecation",
   "-Xfuture",
-  "-Yno-adapted-args",
+//  "-Yno-adapted-args",
   "-Ywarn-dead-code",
   "-Ywarn-numeric-widen",
   "-language:postfixOps",
   "-language:higherKinds",
   "-language:implicitConversions",
   "-Ywarn-value-discard",
-  "-Ypartial-unification"
+//  "-Ypartial-unification"
 )
 
 
@@ -41,10 +38,10 @@ lazy val `zio-test-sbt` = "dev.zio" %% "zio-test-sbt" % `zio-version` % "test"
 
 lazy val commonSettings = Seq(
   parallelExecution in Test := false,
-  scalacOptions ++= bspScalacOptions,
+  scalacOptions ++= simplejsonparserScalacOptions,
   organization := "tewecske",
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
-  addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.10"),
+  addCompilerPlugin("org.typelevel" % "kind-projector" % "0.11.1" cross CrossVersion.full),
   exportJars := true,
   updateOptions := updateOptions.value.withCachedResolution(true),
   libraryDependencies ++= Seq(

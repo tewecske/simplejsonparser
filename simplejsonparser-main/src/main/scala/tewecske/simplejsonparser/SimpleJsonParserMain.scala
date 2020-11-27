@@ -1,19 +1,25 @@
 package tewecske.simplejsonparser
 
-import cats._
+import cats.{derived, _}
 import cats.implicits._
-import cats.derived
 import tewecske.simplejsonparser.SimpleJsonParserMain.JsonValue.{JsonArray, JsonBoolean, JsonNull, JsonNumber, JsonObject, JsonString}
 
 object SimpleJsonParserMain {
 
   sealed trait JsonValue extends Product with Serializable
+
   object JsonValue {
+
     case object JsonNull extends JsonValue
+
     case class JsonBoolean(b: Boolean) extends JsonValue
+
     case class JsonNumber(n: Int) extends JsonValue
+
     case class JsonString(s: String) extends JsonValue
+
     case class JsonArray(l: List[JsonValue]) extends JsonValue
+
     case class JsonObject(o: List[(String, JsonValue)]) extends JsonValue
 
     implicit val jsonValueEq: Eq[JsonValue] = {
@@ -26,21 +32,21 @@ object SimpleJsonParserMain {
 
   type Parser[A] = String => Option[(String, A)]
 
-//  object Parser {
-    implicit val alternativeParser: Alternative[Parser] = new Alternative[Parser] {
-      override def pure[A](x: A): Parser[A] = input => Some((input, x))
+  //  object Parser {
+  implicit val alternativeParser: Alternative[Parser] = new Alternative[Parser] {
+    override def pure[A](x: A): Parser[A] = input => Some((input, x))
 
-      override def ap[A, B](ff: Parser[A => B])(fa: Parser[A]): Parser[B] = input => for {
-        (rest, f) <- ff(input)
-        (rest2, a) <- fa(rest)
-      } yield (rest2, f(a))
+    override def ap[A, B](ff: Parser[A => B])(fa: Parser[A]): Parser[B] = input => for {
+      (rest, f) <- ff(input)
+      (rest2, a) <- fa(rest)
+    } yield (rest2, f(a))
 
-      override def empty[A]: Parser[A] = _ => None
+    override def empty[A]: Parser[A] = _ => None
 
-      override def combineK[A](x: Parser[A], y: Parser[A]): Parser[A] = input =>
-        x(input).combineK(y(input))
-    }
-//  }
+    override def combineK[A](x: Parser[A], y: Parser[A]): Parser[A] = input =>
+      x(input).combineK(y(input))
+  }
+  //  }
 
   def runParser[A](p: Parser[A]): Parser[A] = input => p(input)
 
@@ -60,33 +66,29 @@ object SimpleJsonParserMain {
     p(input).filter(!_._2.isEmpty)
 
 
-
-
   val stringLiteral: Parser[String] = charP('"') *> spanP('\"' != _) <* charP('"')
 
   val ws = spanP(Character.isWhitespace)
 
   val elements = sepBy(ws *> charP(',') <* ws, jsonValue(_))
 
-  def many[A](p: Parser[A]): Parser[List[A]] = {
-    (input: String) => {
-      def loop(input: String, result: List[A]): (String, List[A]) = {
-        runParser(p)(input) match {
-          case Some((rest, x)) =>
-            loop(rest, x :: result)
-          case None =>
-            (input, result)
-        }
-      }
-      val (rest, result) = loop(input, List.empty[A])
-      Some((rest, result.reverse))
+  def many[A](p: Parser[A]): Parser[List[A]] = input => {
+    def loop(input: String, results: List[A]): (String, List[A]) = p(input) match {
+      case Some((rest, x)) => loop(rest, x :: results)
+      case None => (input, results)
     }
+
+    val (rest, results) = loop(input, List.empty[A])
+    Some(rest, results.reverse)
   }
+
   def cons[A](a: A)(b: List[A]): List[A] = a :: b
+
   def sepBy[A, B](sep: Parser[A], element: Parser[B]): Parser[List[B]] =
     element.map(cons).ap(many(sep *> element)) <+> alternativeParser.pure(List())
 
   def keyColon[A, B](a: A)(b: B): A = a
+
   def keyValue[A, B](a: A)(b: B): (A, B) = (a, b)
 
   val pair = stringLiteral.map(keyColon).ap(ws *> charP(':') <* ws).map(keyValue[String, JsonValue]).ap(jsonValue(_))
@@ -101,14 +103,6 @@ object SimpleJsonParserMain {
 
   def jsonValue: Parser[JsonValue] =
     jsonNull <+> jsonBoolean <+> jsonNumber <+> jsonString <+> jsonArray <+> jsonObject
-
-
-
-
-
-
-
-
 
 
   def main(args: Array[String]): Unit = {
