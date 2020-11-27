@@ -9,17 +9,11 @@ object SimpleJsonParserMain {
   sealed trait JsonValue extends Product with Serializable
 
   object JsonValue {
-
     case object JsonNull extends JsonValue
-
     case class JsonBoolean(b: Boolean) extends JsonValue
-
     case class JsonNumber(n: Int) extends JsonValue
-
     case class JsonString(s: String) extends JsonValue
-
     case class JsonArray(l: List[JsonValue]) extends JsonValue
-
     case class JsonObject(o: List[(String, JsonValue)]) extends JsonValue
 
     implicit val jsonValueEq: Eq[JsonValue] = {
@@ -32,7 +26,6 @@ object SimpleJsonParserMain {
 
   type Parser[A] = String => Option[(String, A)]
 
-  //  object Parser {
   implicit val alternativeParser: Alternative[Parser] = new Alternative[Parser] {
     override def pure[A](x: A): Parser[A] = input => Some((input, x))
 
@@ -46,9 +39,6 @@ object SimpleJsonParserMain {
     override def combineK[A](x: Parser[A], y: Parser[A]): Parser[A] = input =>
       x(input).combineK(y(input))
   }
-  //  }
-
-  def runParser[A](p: Parser[A]): Parser[A] = input => p(input)
 
   def charP(c: Char): Parser[Char] = input => input.toList match {
     case `c` :: tail => Some((tail.mkString, c))
@@ -104,8 +94,4 @@ object SimpleJsonParserMain {
   def jsonValue: Parser[JsonValue] =
     jsonNull <+> jsonBoolean <+> jsonNumber <+> jsonString <+> jsonArray <+> jsonObject
 
-
-  def main(args: Array[String]): Unit = {
-    println("Hello")
-  }
 }
